@@ -22,3 +22,8 @@ npm run preview
 Features: keyword-in-context concordance with literal/regex, case and whole-word search; context sorting and pagination; concordance plots; word frequencies; 2–5 word n-grams; collocates within a five-token window; source text viewing; and CSV export. Click concordance rows to view their source or frequency rows to search a term. Add UTF-8 `.txt`, `.text`, `.md`, or `.csv` files (10 MB maximum per file). CSV files are analyzed as plain text.
 
 This independent implementation covers core exploratory analysis, not full AntConc feature parity. It does not include reference-corpus keyness, statistical association scores, lemmatization, or PDF extraction.
+
+## GitHub Pages
+
+The app is configured for https://lucas-granucci.github.io/conc/.
+In repository **Settings → Pages**, choose **GitHub Actions** as the build and deployment source. The `Deploy to GitHub Pages` workflow tests, builds, and deploys on pushes to `main`; it can also be run manually from the Actions tab. The Vite base path is `/conc/` so bundled assets resolve under the project URL.
