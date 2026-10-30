@@ -10,7 +10,7 @@ test('collocates count surrounding tokens and omit the queried position',()=>{co
 const {batchCounts, parseTerms, batchCSV} = await import('../src/batch.js');
 test('batch terms normalize CRLF, blanks and duplicates; reject non-word patterns',()=>{
  assert.deepEqual(parseTerms(' May\r\n\nmay\nseem*\n SU '),['may','seem*','su']);
- for(const term of ['*','[a-z]','two words','foo?']) assert.throws(()=>parseTerms(term));
+ for(const term of ['*','[a-z]','word *','foo?']) assert.throws(()=>parseTerms(term));
 });
 test('batch gives exact and wildcard raw counts and weighted rates per file and combined',()=>{
  const result=batchCounts([{id:1,name:'same.txt',text:'May may maybe seems seemed su such.'},{id:2,name:'same.txt',text:'may appear appears'}], 'may\nseem*\nsu\nappear*\nwould');
@@ -27,7 +27,7 @@ test('batch overlapping patterns count unique tokens in totals and handle empty 
  assert.equal(r.totals[0].count,5);assert.equal(r.rows.filter(x=>x.scopeId==='combined').reduce((s,r)=>s+r.count,0),6);
  assert.equal(r.totals[1].per1000,0);assert.equal(r.totals[1].percent,0);
  assert.deepEqual(batchCounts([], '').rows,[]);
- const csv=batchCSV(r);assert.match(csv,/per_1000_words/);assert.match(csv,/TOTAL \(unique matched tokens\)/);assert.ok(!csv.includes('NaN'));
+ const csv=batchCSV(r);assert.match(csv,/per_1000_words/);assert.match(csv,/TOTAL \(unique list hits\)/);assert.ok(!csv.includes('NaN'));
 });
 
 const {compareCorpora} = await import('../src/batch.js');
@@ -73,4 +73,26 @@ test('graph contains only one total bar per corpus and spreadsheet data matches 
  assert.equal(graphTSV(report,'count').split('\n')[0].split('\t')[1],'Raw hits');
  assert.equal(graphTSV(report,'percent').split('\n')[1].split('\t')[1],'75');
  const quoted={...report,totals:[{...report.totals[0],corpus:'My \"corpus\"'}]};assert.equal(graphTSV(quoted).split('\n')[1].split('\t')[0],'\"My \"\"corpus\"\"\"');
+});
+
+test('phrases normalize spaces and match case-insensitively across whitespace only',()=>{
+ assert.deepEqual(parseTerms(' Even   though\nEVEN\tthough\nin spite of '),['even though','in spite of']);
+ const r=compareCorpora([{id:'a',name:'A',files:[{text:'Even though it rains, even\nthough we go. even, though is not a phrase. In spite of rain.'}]}],'even though\nin spite of\nthough');
+ assert.deepEqual(r.rows.map(r=>r.count),[2,1,3]);
+ assert.deepEqual(r.rows[0].forms,['even though']);
+ assert.equal(r.totals[0].count,4); // two phrases, one standalone though, one in spite of
+ assert.equal(r.totals[0].per1000,4/r.totals[0].words*1000);
+});
+test('phrases never cross files, corpora, or punctuation and allow per-word wildcards',()=>{
+ const corpora=[{id:'a',name:'A',files:[{text:'on the other'},{text:'hand. in contrast by contrast even though'}]},{id:'b',name:'B',files:[{text:'seems likely. seem likely. seems, likely. on the contrary'}]}];
+ const r=compareCorpora(corpora,'on the other hand\nin contrast\nby contrast\nseem* likely\non the contrary');
+ assert.deepEqual(r.rows.slice(0,5).map(r=>r.count),[0,1,1,0,0]);
+ assert.deepEqual(r.rows.slice(5).map(r=>r.count),[0,0,0,2,1]);
+ assert.deepEqual(r.rows[8].forms,['seem likely','seems likely']);
+ assert.equal(batchCounts(corpora[0].files,'on the other hand').totals[0].count,0);
+});
+test('list totals use longest non-overlapping phrase hits; individual counts remain independent',()=>{
+ const r=compareCorpora([{id:'a',name:'A',files:[{text:'even though though even though'}]}],'though\neven though\neven');
+ assert.deepEqual(r.rows.map(r=>r.count),[3,2,2]);assert.equal(r.totals[0].count,3);
+ assert.equal(compareCorpora([{id:'a',name:'A',files:[{text:'a a a'}]}],'a a').totals[0].count,1);
 });

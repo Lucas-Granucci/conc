@@ -177,3 +177,8 @@ button:disabled{cursor:default;opacity:.6}
 #copy-fallback[hidden]{display:none}
 #copy-fallback label{display:block;font-size:13px;margin-bottom:8px}
 #graph-data-text{width:100%;font:13px/1.6 ui-monospace,monospace;white-space:pre;resize:vertical;background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:10px}
+/* Keep sidebar controls at their natural height when the file list grows. */
+aside > :not(.file-list){flex-shrink:0}
+aside .file-list{flex:0 1 auto;min-height:0;overflow-y:auto}
+#active-corpus{flex:0 0 auto;min-height:44px;line-height:1.4;padding:10px 32px 10px 12px;font-size:14px;margin-bottom:0}
+.file-list .file-item{flex-shrink:0}
