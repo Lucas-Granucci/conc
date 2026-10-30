@@ -29,3 +29,29 @@ test('batch overlapping patterns count unique tokens in totals and handle empty 
  assert.deepEqual(batchCounts([], '').rows,[]);
  const csv=batchCSV(r);assert.match(csv,/per_1000_words/);assert.match(csv,/TOTAL \(unique matched tokens\)/);assert.ok(!csv.includes('NaN'));
 });
+
+const {compareCorpora} = await import('../src/batch.js');
+const {comparisonChart} = await import('../src/charts.js');
+test('named corpora aggregate files and preserve separate denominators and identities',()=>{
+ const r=compareCorpora([
+  {id:'a',name:'First',files:[{name:'same',text:'may may seem'},{name:'same',text:'seems other'}]},
+  {id:'b',name:'Second',files:[{name:'same',text:'may other other other other other other other other other'}]},
+  {id:'empty',name:'Empty',files:[]}
+ ],'may\nseem*');
+ assert.equal(r.rows.length,6);assert.equal(r.totals.length,3);
+ assert.deepEqual(r.rows.slice(0,2).map(r=>[r.count,r.words,r.per1000]),[[2,5,400],[2,5,400]]);
+ assert.deepEqual(r.rows.slice(2,4).map(r=>[r.count,r.words,r.per1000]),[[1,10,100],[0,10,0]]);
+ assert.equal(r.totals[0].count,4);assert.equal(r.totals[0].per1000,800);
+ assert.equal(r.totals[2].percent,0);assert.ok(r.rows.every(r=>!r.corpus.includes('same')));
+ const csv=batchCSV(r);assert.ok(csv.includes('"First"'));assert.ok(!csv.includes('"same"'));
+});
+test('corpus charts use report values, metrics, zero baseline and escaped labels',()=>{
+ const report=compareCorpora([{id:'a',name:'A < & " B',files:[{text:'may may other other'}]}],'may\nwould');
+ const svg=comparisonChart(report);assert.ok(svg.includes('500.000'));assert.ok(svg.includes('A &lt; &amp; &quot; B'));assert.ok(svg.includes('0.000'));assert.ok(!svg.includes('NaN'));
+ const raw=comparisonChart(report,'count',true);assert.ok(raw.includes('2 hits / 4 words'));assert.ok(raw.includes('Raw hits'));
+ const empty=comparisonChart(compareCorpora([{id:'e',name:'Empty',files:[]}],'may'));assert.ok(!/NaN|Infinity/.test(empty));
+});
+test('concordance retains identity for duplicate filenames',()=>{
+ const result=concordance([{id:'a',name:'same',text:'may'},{id:'b',name:'same',text:'may'}],'may');
+ assert.deepEqual(result.map(r=>r.fileId),['a','b']);
+});

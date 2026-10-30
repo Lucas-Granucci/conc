@@ -16,6 +16,17 @@ export function batchCounts(files, input) {
   const patterns = terms.map(term => new RegExp('^' + term.split('*').map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$', 'u'));
   const sources = files.map((file, i) => ({id: file.id ?? i, name: file.name, tokens: words(file.text)}));
   const scopes = [{id: 'combined', name: 'All files combined', tokens: sources.flatMap(s => s.tokens)}, ...sources];
+  return countScopes(scopes, terms, patterns);
+}
+
+export function compareCorpora(corpora, input) {
+  const terms = parseTerms(input);
+  const patterns = terms.map(term => new RegExp('^' + term.split('*').map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$', 'u'));
+  const scopes = corpora.map(corpus => ({id: corpus.id, name: corpus.name, tokens: corpus.files.flatMap(file => words(file.text))}));
+  return countScopes(scopes, terms, patterns);
+}
+
+function countScopes(scopes, terms, patterns) {
   const rows = [], totals = [];
   for (const scope of scopes) {
     const frequencies = new Map();
