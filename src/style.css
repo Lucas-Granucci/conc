@@ -171,3 +171,9 @@ dialog h2 { margin: 0 0 8px; }
 .corpus-card{background:var(--panel);border-color:var(--line)}
 .batch-table td,.batch-table th{border-color:var(--line);color:var(--ink)}
 button:disabled{cursor:default;opacity:.6}
+.graph-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:24px}
+#copy-status{font-size:13px;color:var(--muted)}
+#copy-fallback{padding:16px;margin:12px 0 24px;border:1px solid var(--line);border-radius:6px}
+#copy-fallback[hidden]{display:none}
+#copy-fallback label{display:block;font-size:13px;margin-bottom:8px}
+#graph-data-text{width:100%;font:13px/1.6 ui-monospace,monospace;white-space:pre;resize:vertical;background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:10px}

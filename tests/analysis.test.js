@@ -31,7 +31,7 @@ test('batch overlapping patterns count unique tokens in totals and handle empty 
 });
 
 const {compareCorpora} = await import('../src/batch.js');
-const {comparisonChart} = await import('../src/charts.js');
+const {comparisonChart, chartScale, graphTSV} = await import('../src/charts.js');
 test('named corpora aggregate files and preserve separate denominators and identities',()=>{
  const r=compareCorpora([
   {id:'a',name:'First',files:[{name:'same',text:'may may seem'},{name:'same',text:'seems other'}]},
@@ -47,11 +47,30 @@ test('named corpora aggregate files and preserve separate denominators and ident
 });
 test('corpus charts use report values, metrics, zero baseline and escaped labels',()=>{
  const report=compareCorpora([{id:'a',name:'A < & " B',files:[{text:'may may other other'}]}],'may\nwould');
- const svg=comparisonChart(report);assert.ok(svg.includes('500.000'));assert.ok(svg.includes('A &lt; &amp; &quot; B'));assert.ok(svg.includes('0.000'));assert.ok(!svg.includes('NaN'));
- const raw=comparisonChart(report,'count',true);assert.ok(raw.includes('2 hits / 4 words'));assert.ok(raw.includes('Raw hits'));
+ const svg=comparisonChart(report);assert.ok(svg.includes('500'));assert.ok(svg.includes('A &lt; &amp; &quot; B'));assert.ok(svg.includes('>0</text>'));assert.ok(!svg.includes('NaN'));
+ const raw=comparisonChart(report,'count');assert.ok(raw.includes('2 hits / 4 words'));assert.ok(raw.includes('Raw hits'));
  const empty=comparisonChart(compareCorpora([{id:'e',name:'Empty',files:[]}],'may'));assert.ok(!/NaN|Infinity/.test(empty));
 });
 test('concordance retains identity for duplicate filenames',()=>{
  const result=concordance([{id:'a',name:'same',text:'may'},{id:'b',name:'same',text:'may'}],'may');
  assert.deepEqual(result.map(r=>r.fileId),['a','b']);
+});
+
+test('chart axis uses standard round ticks, covers values and keeps count ticks integral',()=>{
+ assert.deepEqual(chartScale(833.333).ticks,[0,200,400,600,800,1000]);
+ assert.deepEqual(chartScale(3,true).ticks,[0,1,2,3]);
+ assert.deepEqual(chartScale(0.083).ticks,[0,0.02,0.04,0.06,0.08,0.1]);
+ for(const max of [0,0.003,1,7,33.333,1578,987654]){
+  const s=chartScale(max);assert.ok(s.max>=max);assert.equal(s.ticks[0],0);assert.ok(s.ticks.length<=7);assert.ok(s.step>0);
+ }
+});
+test('graph contains only one total bar per corpus and spreadsheet data matches totals',()=>{
+ const report=compareCorpora([{id:'a',name:'Essays',files:[{text:'may may seem other'}]},{id:'b',name:'=Title\twith\nlines',files:[{text:'seems other'}]}],'may\nseem*');
+ const svg=comparisonChart(report);assert.equal((svg.match(/class="corpus-bar"/g)||[]).length,2);assert.ok(!svg.includes('Word-pattern comparison'));
+ const tsv=graphTSV(report);const rows=tsv.split('\n').map(r=>r.split('\t'));
+ assert.deepEqual(rows[0],['Corpus','Hits per 1,000 words','Raw hits','Percent of words','Total words']);
+ assert.deepEqual(rows[1],['Essays','750','3','75','4']);assert.deepEqual(rows[2],["'=Title with lines",'500','1','50','2']);
+ assert.equal(graphTSV(report,'count').split('\n')[0].split('\t')[1],'Raw hits');
+ assert.equal(graphTSV(report,'percent').split('\n')[1].split('\t')[1],'75');
+ const quoted={...report,totals:[{...report.totals[0],corpus:'My \"corpus\"'}]};assert.equal(graphTSV(quoted).split('\n')[1].split('\t')[0],'\"My \"\"corpus\"\"\"');
 });

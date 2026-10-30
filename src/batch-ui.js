@@ -1,6 +1,6 @@
 import { compareCorpora, batchCSV } from './batch.js';
 import { words } from './analysis.js';
-import { comparisonChart, metrics } from './charts.js';
+import { comparisonChart, metrics, graphTSV } from './charts.js';
 const escape = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let draft = 'may\nmight\ncould\nwould\nshould\nseem*\nappear*\nbelieve*\nassume*\nsu';
 let submitted = draft;
@@ -45,11 +45,25 @@ export function renderBatch(container, corpora, onChange) {
     if(!corpora.length){result.innerHTML='<p class="empty">Add a named corpus above to start comparing.</p>';return;}
     if(!report.terms.length){result.innerHTML='<p class="empty">Paste at least one word or pattern, then select Analyze corpora.</p>';return;}
     const cells=r=>`<td>${escape(r.corpus)}</td><td>${r.words.toLocaleString()}</td><td>${r.count.toLocaleString()}</td><td>${r.per1000.toFixed(3)}</td><td>${r.percent.toFixed(3)}%</td>`;
-    result.innerHTML=`<div class="results-toolbar"><strong>${report.terms.length} patterns · ${corpora.length} corpora</strong><button id="batch-export" class="export">Export CSV</button></div><div class="chart-heading"><div><h2>Compare counts</h2><p>Rates per 1,000 words account for different corpus sizes. Hover over a bar for its count and denominator.</p></div><label>Graph metric <select id="chart-metric">${Object.entries(metrics).map(([key,label])=>`<option value="${key}" ${key===metric?'selected':''}>${label}</option>`).join('')}</select></label></div><div class="comparison-chart" id="totals-chart">${comparisonChart(report,metric,true)}</div><button class="export" id="download-totals-chart">Download totals graph (SVG)</button><div class="comparison-chart" id="terms-chart">${comparisonChart(report,metric)}</div><button class="export" id="download-terms-chart">Download word graph (SVG)</button><h2>Corpus totals</h2><p>All files in each corpus are combined. Each matching token counts once here, even when patterns overlap. Rates use the whole corpus word count.</p><div class="table-wrap"><table class="batch-table"><thead><tr><th>Corpus</th><th>Total words</th><th>Raw hits</th><th>Per 1,000 words</th><th>Percent</th></tr></thead><tbody>${report.totals.map(r=>`<tr>${cells(r)}</tr>`).join('')}</tbody></table></div><h2>Hits by word or pattern</h2><p>Counts cover the entire named corpus, with no per-file breakdown. Individual patterns are independent; overlapping patterns may match the same token.</p><div class="table-wrap"><table class="batch-table"><thead><tr><th>Pattern</th><th>Corpus</th><th>Total words</th><th>Raw hits</th><th>Per 1,000 words</th><th>Percent</th><th>Matched forms</th></tr></thead><tbody>${report.terms.flatMap(term=>report.rows.filter(r=>r.term===term)).map(r=>`<tr><th scope="row">${escape(r.term)}</th>${cells(r)}<td>${r.forms.length?escape(r.forms.join(', ')):'—'}</td></tr>`).join('')}</tbody></table></div>`;
+    result.innerHTML=`<div class="results-toolbar"><strong>${report.terms.length} patterns · ${corpora.length} corpora</strong><button id="batch-export" class="export">Export CSV</button></div><div class="chart-heading"><div><h2>Compare counts</h2><p>One bar per corpus for the whole list. Rates per 1,000 words account for different corpus sizes.</p></div><label>Graph metric <select id="chart-metric">${Object.entries(metrics).map(([key,label])=>`<option value="${key}" ${key===metric?'selected':''}>${label}</option>`).join('')}</select></label></div><div class="comparison-chart" id="totals-chart">${comparisonChart(report,metric)}</div><div class="graph-actions"><button class="export" id="copy-graph-data">Copy graph data</button><button class="export" id="download-totals-chart">Download graph (SVG)</button><span id="copy-status" role="status"></span></div><div id="copy-fallback" hidden><label for="graph-data-text">Copy the selected data with Ctrl+C or ⌘C, then paste into your spreadsheet.</label><textarea id="graph-data-text" readonly rows="6" spellcheck="false"></textarea></div><h2>Corpus totals</h2><p>All files in each corpus are combined. Each matching token counts once here, even when patterns overlap. Rates use the whole corpus word count.</p><div class="table-wrap"><table class="batch-table"><thead><tr><th>Corpus</th><th>Total words</th><th>Raw hits</th><th>Per 1,000 words</th><th>Percent</th></tr></thead><tbody>${report.totals.map(r=>`<tr>${cells(r)}</tr>`).join('')}</tbody></table></div><h2>Hits by word or pattern</h2><p>Counts cover the entire named corpus, with no per-file breakdown. Individual patterns are independent; overlapping patterns may match the same token.</p><div class="table-wrap"><table class="batch-table"><thead><tr><th>Pattern</th><th>Corpus</th><th>Total words</th><th>Raw hits</th><th>Per 1,000 words</th><th>Percent</th><th>Matched forms</th></tr></thead><tbody>${report.terms.flatMap(term=>report.rows.filter(r=>r.term===term)).map(r=>`<tr><th scope="row">${escape(r.term)}</th>${cells(r)}<td>${r.forms.length?escape(r.forms.join(', ')):'—'}</td></tr>`).join('')}</tbody></table></div>`;
     result.querySelector('#chart-metric').onchange=e=>{metric=e.target.value;draw();};
     result.querySelector('#batch-export').onclick=()=>download(batchCSV(report),'text/csv;charset=utf-8','conc-corpus-comparison.csv');
-    result.querySelector('#download-totals-chart').onclick=()=>download(comparisonChart(report,metric,true),'image/svg+xml','conc-corpus-totals.svg');
-    result.querySelector('#download-terms-chart').onclick=()=>download(comparisonChart(report,metric),'image/svg+xml','conc-word-comparison.svg');
+    result.querySelector('#download-totals-chart').onclick=()=>download(comparisonChart(report,metric),'image/svg+xml','conc-corpus-totals.svg');
+    result.querySelector('#copy-graph-data').onclick=async e=>{
+      const button=e.currentTarget, status=result.querySelector('#copy-status');
+      const data=graphTSV(report,metric);
+      button.disabled=true;
+      try{
+        if(!navigator.clipboard?.writeText)throw new Error('Clipboard unavailable');
+        await navigator.clipboard.writeText(data);
+        status.textContent=`Copied ${report.totals.length} ${report.totals.length===1?'corpus':'corpora'} — paste into Sheets or Excel.`;
+        result.querySelector('#copy-fallback').hidden=true;
+      }catch{
+        result.querySelector('#copy-fallback').hidden=false;
+        const text=result.querySelector('#graph-data-text');text.value=data;text.focus();text.select();
+        status.textContent='Clipboard access is unavailable. Copy the selected data below.';
+      }finally{button.disabled=false;}
+    };
   }
   draw();
 }
