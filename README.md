@@ -27,3 +27,24 @@ This independent implementation covers core exploratory analysis, not full AntCo
 
 The app is configured for https://lucas-granucci.github.io/conc/.
 In repository **Settings → Pages**, choose **GitHub Actions** as the build and deployment source. The `Deploy to GitHub Pages` workflow tests, builds, and deploys on pushes to `main`; it can also be run manually from the Actions tab. The Vite base path is `/conc/` so bundled assets resolve under the project URL.
+
+## Batch word-list analysis
+
+Open **Word-list analysis**, paste one word or wildcard pattern per line, and select **Analyze all files**. For example:
+
+```text
+may
+might
+could
+would
+should
+seem*
+appear*
+believe*
+assume*
+su
+```
+
+Matching is case-insensitive and applies to whole word tokens. `*` matches zero or more characters: `seem*` includes `seem`, `seems`, and `seemed`. `su` matches only the word `su`; use `su*` to match words beginning with those letters. Blank lines and duplicate patterns are ignored. Phrases and regular expressions are not supported in this tool.
+
+Results include each uploaded file separately and all files combined, with total words, raw counts, counts per 1,000 words, percentages, and the actual matched forms. Each file acts as a separate comparison corpus. The denominator uses the app's Unicode word tokenizer, including numbers and internally hyphenated or apostrophized words. Combined rates are computed from combined counts and word totals. List totals count each matched token only once even if multiple patterns overlap; individual pattern counts remain independent. Empty files receive zero rates. CSV exports all results with unrounded rates, regardless of the display filter. Corpus and word-list input stay in browser-session memory.

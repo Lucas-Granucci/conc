@@ -116,3 +116,26 @@ dialog h2 { margin: 0 0 8px; }
   .plot-row { flex-direction: column; align-items: stretch; gap: 8px; }
   .plot-row > div:first-child { width: auto; }
 }
+
+/* Batch word-list comparison */
+.search-area[hidden]{display:none}
+.batch-panel{padding:24px;max-width:100%}
+.batch-panel h1{font-size:24px;margin:0 0 12px}
+.batch-panel h2{font-size:18px;margin:24px 0 8px}
+.batch-panel p{font-size:14px;line-height:1.6;color:#59635b}
+#batch-form{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin:24px 0}
+#batch-form label{font-weight:600}
+#batch-terms{font:15px/1.5 ui-monospace,monospace;padding:12px;width:min(100%,600px);resize:vertical;border:1px solid #aeb8ad;border-radius:5px;background:#fff;color:#253327}
+#batch-help{max-width:800px;margin:0}
+.batch-panel .results-toolbar{flex-wrap:wrap;padding:14px 0;gap:12px}
+.batch-panel .results-toolbar select{max-width:none;font-size:13px;padding:6px}
+.batch-panel .export{font-size:13px}
+.batch-table{table-layout:auto;min-width:650px;font-size:14px}
+.batch-table td,.batch-table th{padding:12px;white-space:normal;height:auto;border-bottom:1px solid #e5e9e2;text-align:right}
+.batch-table th{font-size:12px;letter-spacing:0;color:#4f5f49}
+.batch-table th:first-child,.batch-table td:first-child,.batch-table td:last-child{text-align:left}
+.batch-table tbody th{font-size:14px;background:transparent;text-align:left}
+.batch-table td{color:#364532;overflow-wrap:anywhere}
+.batch-table tbody tr:hover{cursor:default}
+.batch-error{padding:15px;border:1px solid #deaaa0;border-radius:5px;color:#9d3024!important}
+@media(max-width:600px){.batch-panel{padding:16px}.batch-panel .results-toolbar>div{flex-wrap:wrap}.batch-panel h1{font-size:22px}}
